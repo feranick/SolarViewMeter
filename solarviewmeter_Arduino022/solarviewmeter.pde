@@ -3,7 +3,7 @@
  
  SolarViewMeter						 
  		
- v. 1.2 - Display current performance of a solar cell
+ v. 1.3 - Display current performance of a solar cell
  
  2011 - Nicola Ferralis - ferralis@mit.edu					  
  
@@ -39,7 +39,8 @@
  |     5 - CS (SS)        |     53     |     10    |
  ---------------------------------------------------
  
- 
+ 3. Connect SDA 4 for UNO, 20 for MEGA; 
+    Connect SCL 5 for UNO, 21 for MEGA.
  //**************************************************************************************
  */
 
@@ -52,9 +53,9 @@
 
 //#define MEGA // comment for Arduino UNO, uncomment for MEGA
 
-#define VSC // Uncomment this to measure Vsc
+//#define VSC // Uncomment this to measure Vsc
 
-#define SPIPOT //comment to use with I2C bus potentiometer (AD5254), uncomment for SPI (AD5206)
+//#define SPIPOT //comment to use with I2C bus potentiometer (AD5254), uncomment for SPI (AD5206)
 
 //------------------
 // Name and version 
@@ -131,7 +132,8 @@ void setup()
   // Initialize serial port 
   //----------------------------------------
   Serial.begin(9600);
-  Wire.begin();  
+  
+  
   #ifdef TERM
   #else
   backlightOn();
@@ -150,7 +152,11 @@ void setup()
   //----------------------------------------
   // initialize SPI:
   //----------------------------------------
+  #ifdef SPIPOT
   SPI.begin(); 
+  #else
+  Wire.begin();  
+  #endif
 
   //----------------------------------------
   //Initialize reference voltage
@@ -324,12 +330,13 @@ void perform() {
   
   #ifdef SPIPOT
     for (int g=0; g<6; g++) {
-      digitalPotWrite(g, 255);
+      digitalPotWriteSPI(g, 255);
     }
     #else
     //// Make sure this works first depending on the number of pots. 
     //for (int g=44; g<47; g++) {
-      digitalPotWrite(44, 255);
+      digitalPotWriteI2C(44,0x00, 255);
+      digitalPotWriteI2C(44,0x01, 255);
     //}
     #endif
       
@@ -427,12 +434,13 @@ void ivSingle() {
   { 
     #ifdef SPIPOT
     for (int g=0; g<6; g++) {
-      digitalPotWrite(g, 255);
+      digitalPotWriteSPI(g, 255-j);
     }
     #else
     //// Make sure this works first depending on the number of pots. 
     //for (int g=44; g<47; g++) {
-      digitalPotWrite(44, 255);
+      digitalPotWriteI2C(44, 0x00, 255-j);
+      digitalPotWriteI2C(44, 0x01, 255-j);
     //}
     #endif
       
@@ -564,13 +572,12 @@ float avoltage(int analogPin, float Volt, int numAver)
 }
 
 
+#ifdef SPIPOT
 //////////////////////////////////////////////
 // set potentiometer
 //////////////////////////////////////////////
 
-int digitalPotWrite(int address, int value) {
-  
-  #ifdef SPIPOT
+int digitalPotWriteSPI(int address, int value) {
   // take the SS pin low to select the chip:
   digitalWrite(slaveSelectPin,LOW);
   //  send in the address and value via SPI:
@@ -578,15 +585,19 @@ int digitalPotWrite(int address, int value) {
   SPI.transfer(value);
   // take the SS pin high to de-select the chip:
   digitalWrite(slaveSelectPin,HIGH);
+  }
+#endif  
+  
+#ifdef SPIPOT  
   #else
+int digitalPotWriteI2C(int address, byte a1, int value) {
   Wire.beginTransmission(address); // transmit to device #44, 45, 46, 47 
                               // device address is specified in datasheet
-  Wire.send(0x00);            // sends instruction byte  
+  Wire.send(a1);            // sends instruction byte  
   Wire.send(value);             // sends potentiometer value byte  
   Wire.endTransmission();     // stop transmitting
-
+  }
   #endif
-}
 
 
 #ifdef TERM
