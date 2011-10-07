@@ -62,8 +62,8 @@
 //------------------
 
 String nameProg = "SolarViewMeter";
-String versProg = "1.2";
-String versDate = "20110930";
+String versProg = "1.3";
+String versDate = "20111007";
 String developer = "Nicola Ferralis - ferralis@mit.edu";
 
 
